@@ -1,15 +1,54 @@
-import cv2
+import sys
+import cv2 as cv
+import os
 
-img = cv2.imread("input_photo/input.jpg", cv2.IMREAD_GRAYSCALE)
 
-sobel_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-sobel_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+def main(argv):
+    window_name = 'Sobel Demo - Simple Edge Detector'
+    scale = 1
+    delta = 0
+    ddepth = cv.CV_16S
 
-sobel_x = cv2.convertScaleAbs(sobel_x)
-sobel_y = cv2.convertScaleAbs(sobel_y)
+    # Build path to image in input_photo folder
+    image_path = os.path.join("input_photo", "lena.jpg")
 
-sobel = cv2.addWeighted(sobel_x, 0.5, sobel_y, 0.5, 0)
+    src = cv.imread(image_path, cv.IMREAD_COLOR)
+    if src is None:
+        print("Error opening image:", image_path)
+        return -1
 
-cv2.imshow("Sobel Edge Detection", sobel)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    # Reduce noise
+    src = cv.GaussianBlur(src, (3, 3), 0)
+
+    # Convert to grayscale
+    gray = cv.cvtColor(src, cv.COLOR_BGR2GRAY)
+
+    # Sobel gradients
+    grad_x = cv.Sobel(
+        gray, ddepth, 1, 0,
+        ksize=3, scale=scale, delta=delta,
+        borderType=cv.BORDER_DEFAULT
+    )
+
+    grad_y = cv.Sobel(
+        gray, ddepth, 0, 1,
+        ksize=3, scale=scale, delta=delta,
+        borderType=cv.BORDER_DEFAULT
+    )
+
+    # Convert gradients to absolute values
+    abs_grad_x = cv.convertScaleAbs(grad_x)
+    abs_grad_y = cv.convertScaleAbs(grad_y)
+
+    # Combine gradients
+    grad = cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+
+    cv.imshow(window_name, grad)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+    return 0
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

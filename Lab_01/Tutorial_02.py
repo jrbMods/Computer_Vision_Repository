@@ -1,19 +1,90 @@
-import cv2
+import sys
+import cv2 as cv
+import numpy as np
+import os
 
-img = cv2.imread("input_photo/input.jpg")
+DELAY_CAPTION = 1500
+DELAY_BLUR = 100
+MAX_KERNEL_LENGTH = 31
 
-# Gaussian Blur
-gaussian = cv2.GaussianBlur(img, (15, 15), 0)
+src = None
+dst = None
+window_name = 'Smoothing Demo'
 
-# Median Blur
-median = cv2.medianBlur(img, 5)
 
-# Bilateral Filter
-bilateral = cv2.bilateralFilter(img, 9, 75, 75)
+def main(argv):
+    cv.namedWindow(window_name, cv.WINDOW_AUTOSIZE)
 
-cv2.imshow("Gaussian Blur", gaussian)
-cv2.imshow("Median Blur", median)
-cv2.imshow("Bilateral Filter", bilateral)
+    image_path = os.path.join("input_photo", "lena.jpg")
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    global src
+    src = cv.imread(image_path)
+
+    if src is None:
+        print("Error opening image:", image_path)
+        return -1
+
+    if display_caption('Original Image') != 0:
+        return 0
+
+    global dst
+    dst = np.copy(src)
+    if display_dst(DELAY_CAPTION) != 0:
+        return 0
+
+    if display_caption('Homogeneous Blur') != 0:
+        return 0
+
+    for i in range(1, MAX_KERNEL_LENGTH, 2):
+        dst = cv.blur(src, (i, i))
+        if display_dst(DELAY_BLUR) != 0:
+            return 0
+
+    if display_caption('Gaussian Blur') != 0:
+        return 0
+
+    for i in range(1, MAX_KERNEL_LENGTH, 2):
+        dst = cv.GaussianBlur(src, (i, i), 0)
+        if display_dst(DELAY_BLUR) != 0:
+            return 0
+
+    if display_caption('Median Blur') != 0:
+        return 0
+
+    for i in range(1, MAX_KERNEL_LENGTH, 2):
+        dst = cv.medianBlur(src, i)
+        if display_dst(DELAY_BLUR) != 0:
+            return 0
+
+    if display_caption('Bilateral Blur') != 0:
+        return 0
+
+    for i in range(1, MAX_KERNEL_LENGTH, 2):
+        dst = cv.bilateralFilter(src, i, i * 2, i / 2)
+        if display_dst(DELAY_BLUR) != 0:
+            return 0
+
+    display_caption('Done!')
+    return 0
+
+
+def display_caption(caption):
+    global dst
+    dst = np.zeros(src.shape, src.dtype)
+    rows, cols, _ch = src.shape
+    cv.putText(dst, caption,
+               (int(cols / 4), int(rows / 2)),
+               cv.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255))
+    return display_dst(DELAY_CAPTION)
+
+
+def display_dst(delay):
+    cv.imshow(window_name, dst)
+    c = cv.waitKey(delay)
+    if c >= 0:
+        return -1
+    return 0
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
